@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * Handles .MAP files.
  * Created by Kneesnap on 10/10/2017.
  */
 @Getter @Setter
@@ -24,6 +25,9 @@ public class MAPFile extends GameFile {
     private byte[] cameraData = new byte[8];
 
     private List<Zone> zones = new ArrayList<>();
+    private List<Form> forms = new ArrayList<>();
+    private List<Light> lights = new ArrayList<>();
+    private List<Vertex> vertexes = new ArrayList<>();
 
 
     @Override
@@ -45,7 +49,8 @@ public class MAPFile extends GameFile {
 
         // Offsets of each data point
         for (MapBlock mb : MapBlock.values())
-            mb.setOffset(readInt());
+            if (!mb.isSub()) // Don't set the subcategory from here, that's in GRAP down below.
+                mb.setOffset(readInt());
 
         //   GENERAL SECTION "GENE"   //
         jump(MapBlock.GENERAL);
@@ -101,6 +106,80 @@ public class MAPFile extends GameFile {
         int[] formOffsets = new int[formCount];
         for (int i = 0; i < formCount; i++)
             formOffsets[i] = readInt();
+
+        // Read base forms.
+        int[] formDataSizes = new int[formCount];
+        for (int i = 0; i < formCount; i++) {
+            jump(formOffsets[i]);
+            formDataSizes[i] = readShort();
+            Form form = new Form(readShort(), readShort(), readShort(), readShort(), readShort(), new ArrayList<>());
+            getForms().add(form);
+            formOffsets[i] = readInt(); // Update the data offset to read from.
+        }
+
+        // Read extra form data.
+        for (int i = 0; i < formCount; i++) {
+            jump(formOffsets[i]); // Go to the form_data offset.
+            int dataCount = formDataSizes[i];
+            Form form = getForms().get(i);
+            for (int j = 0; j < dataCount; j++)
+                form.getFormData().add(new FormData(readShort(), readShort(), readShort(), readShort()));
+        }
+
+        //TODO: Read grid_squares
+        //TODO: Read heights
+
+        //   ENTITY SECTION "EMTP"   //
+        jump(MapBlock.ENTITY);
+        int packetLength = readInt();
+        int entityCount = readInt();
+        //TODO: Finish
+
+
+        //       GRAPHICS CATEGORY "GRAP"        //
+        for (MapBlock mb : MapBlock.values())
+            if (mb.isSub()) // Set the offset of all the subvalues.
+                mb.setOffset(readInt());
+
+        //   LIGHT SOURCES "LITE"   //
+        int lightCount = readInt();
+        for (int i = 0; i < lightCount; i++) {
+            //TODO: Read light data.
+        }
+
+        //   MAP GROUP DATA   //
+        byte[] mapBase = readBytes(4); // The bottom left "base point" of the map.
+        short xCount = readShort();
+        short zCount = readShort();
+        short xLength = readShort();
+        short zLength = readShort();
+
+        int totalGroups = xCount * zCount;
+        //TODO: Finish
+
+        //   POLYGON DATA "POLY"   //
+        //TODO
+
+
+        //   VERTEX  DATA "VRTX"   //
+        int vertexCount = readInt();
+        for (int i = 0; i < vertexCount; i++) {
+            getVertexes().add(new Vertex(readShort(), readShort(), readShort())); // Read vertices.
+            readShort(); // Handle padding.
+        }
+
+        //   LEVEL  GRID  "GRID"   // TODO: Why does this resemble the GROU header?
+        short gridXCount = readShort();
+        short gridZCount = readShort();
+        short gridXLength = readShort();
+        short gridZLength = readShort();
+        //TODO: Finish
+
+        //   ANIMATION DATA "ANIM"    //
+        int animCount = readInt();
+        int animOffset = readInt(); // The location in this file animation data is located at.
+        //TODO: Is this ever used? It may be used in the cave levels to animate textures?
+
     }
 
     @SneakyThrows
@@ -118,17 +197,27 @@ public class MAPFile extends GameFile {
     @Getter
     private enum MapBlock {
         GENERAL("GENE"),
-        GRAPHICAL("GRAP"),
+        PATH("PATH"),
+        ZONE("ZONE"),
         FORM("FORM"),
         ENTITY("EMTP"),
-        ZONE("ZONE"),
-        PATH("PATH");
+        GRAPHICAL("GRAP"),
+        LIGHTS("LITE"),
+        GROU("GROU"),
+        POLYGONS("POLY"),
+        VRTX("VRTX"),
+        GRID("GRID"),
+        ANIM("ANIM");
 
         private final String key;
         @Setter private int offset;
 
         MapBlock(String key) {
             this.key = key;
+        }
+
+        public boolean isSub() {
+            return ordinal() > GRAPHICAL.ordinal();
         }
     }
 
@@ -148,5 +237,38 @@ public class MAPFile extends GameFile {
         private short gridZMin;
         private short gridXMax;
         private short gridZMax;
+    }
+
+    @AllArgsConstructor @Getter @Setter
+    private class Form {
+        private short maxY;
+        private short xSize; // Grid squares in form
+        private short zSize; // Grid squares in form
+        private short xOffset; // Offset from bottom left of grid. (Wouldn't this be xPosition then?)
+        private short zOffset; // Offset from bottom left of grid. (Wouldn't this be zPosition then?)
+        private List<FormData> formData;
+    }
+
+    @AllArgsConstructor @Getter @Setter
+    private class FormData {
+        private short heightType; // 0 = Single Height for Grid, 1 = height per grid square.
+        private short height; // The height of the form. If hieghtType == 0
+        private short gridOffset; // The offset of an array [x * z] short flags.
+        private short heightOffset; // The offset of an array for the heights of different grid squares.
+    }
+
+    @AllArgsConstructor @Getter @Setter
+    private class Light {
+        private byte type;
+        private byte apiType;
+        private int color; //BGR, not RGB
+        private byte[] direction = new byte[4];
+    }
+
+    @AllArgsConstructor @Getter @Setter
+    private class Vertex {
+        private short x;
+        private short y;
+        private short z;
     }
 }
