@@ -66,6 +66,11 @@ public class ByteUtils {
 			data[i] = readByte(fis);
 		return data;
 	}
+
+	public static char readChar(InputStream is) throws IOException {
+		counter.put(is, getCounter(is) + 1);
+		return (char) is.read();
+	}
 	
 	public static byte readByte(InputStream fis) throws IOException {
 		counter.put(fis, getCounter(fis) + 1);

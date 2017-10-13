@@ -271,4 +271,40 @@ public class MAPFile extends GameFile {
         private short y;
         private short z;
     }
+
+    @Getter @Setter
+    private class ColorVector {
+        private char red;
+        private char green;
+        private char blue;
+        private char cd; // Unknown "Color D"?
+
+        public ColorVector() throws IOException {
+            setRed(readChar());
+            setGreen(readChar());
+            setBlue(readChar());
+            setCd(readChar());
+        }
+    }
+
+    @Getter @Setter
+    private class Poly {
+        private short vertices[];
+
+        public Poly(int verticeCount) throws IOException {
+            vertices = new short[verticeCount];
+            for (int i = 0; i < verticeCount; i++)
+                vertices[i] = readShort(); // Read vertice data.
+        }
+    }
+
+    private class PolyF3 extends Poly {
+        private ColorVector color;
+
+        public PolyF3() throws IOException {
+            super(3);
+            readShort(); // Padding
+            this.color = new ColorVector();
+        }
+    }
 }

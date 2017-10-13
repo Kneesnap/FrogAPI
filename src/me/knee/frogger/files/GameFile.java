@@ -109,6 +109,10 @@ public abstract class GameFile {
 		return ByteUtils.readInt(fis);
 	}
 
+	protected char readChar() throws IOException {
+		return ByteUtils.readChar(fis);
+	}
+
 	protected byte readByte() throws IOException {
 		return ByteUtils.readByte(fis);
 	}
