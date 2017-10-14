@@ -1,15 +1,17 @@
 package me.knee.frogger.files;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.SneakyThrows;
+import lombok.*;
 import me.knee.frogger.ByteUtils;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Handles .MAP files.
@@ -28,6 +30,11 @@ public class MAPFile extends GameFile {
     private List<Form> forms = new ArrayList<>();
     private List<Light> lights = new ArrayList<>();
     private List<Vertex> vertexes = new ArrayList<>();
+    private Map<PrimType, List<Poly>> polygonData = new HashMap<>();
+
+    public MAPFile(File file) {
+        super(file);
+    }
 
 
     @Override
@@ -91,14 +98,14 @@ public class MAPFile extends GameFile {
             getZones().add(z);
         }
 
-        // Load regions
-        for (int i = 0; i < zoneCount; i++) {
+        // Load regions TODO: Cache the region zone data before we jump to ZONE. We can't jump back to it.
+        /*for (int i = 0; i < zoneCount; i++) {
             if (zoneOffsets[i] == 0)
                 continue;
             jump(zoneOffsets[i]); // Go to region offset
             for (int r = 0; r < regionCounts[i]; i++)
                 getZones().get(i).getRegions().add(new Region(readShort(), readShort(), readShort(), readShort()));
-        }
+        }*/
 
         //   FORM SECTION "FORM"   //
         jump(MapBlock.FORM);
@@ -107,8 +114,8 @@ public class MAPFile extends GameFile {
         for (int i = 0; i < formCount; i++)
             formOffsets[i] = readInt();
 
-        // Read base forms.
-        int[] formDataSizes = new int[formCount];
+        // Read base forms. TODO: Fix negative.
+        /*int[] formDataSizes = new int[formCount];
         for (int i = 0; i < formCount; i++) {
             jump(formOffsets[i]);
             formDataSizes[i] = readShort();
@@ -124,7 +131,7 @@ public class MAPFile extends GameFile {
             Form form = getForms().get(i);
             for (int j = 0; j < dataCount; j++)
                 form.getFormData().add(new FormData(readShort(), readShort(), readShort(), readShort()));
-        }
+        }*/
 
         //TODO: Read grid_squares
         //TODO: Read heights
@@ -137,17 +144,20 @@ public class MAPFile extends GameFile {
 
 
         //       GRAPHICS CATEGORY "GRAP"        //
+        jump(MapBlock.GRAPHICAL);
         for (MapBlock mb : MapBlock.values())
             if (mb.isSub()) // Set the offset of all the subvalues.
                 mb.setOffset(readInt());
 
         //   LIGHT SOURCES "LITE"   //
+        jump(MapBlock.LIGHTS);
         int lightCount = readInt();
         for (int i = 0; i < lightCount; i++) {
             //TODO: Read light data.
         }
 
-        //   MAP GROUP DATA   //
+        //   MAP GROUP DATA "GROU"   //
+        jump(MapBlock.GROU);
         byte[] mapBase = readBytes(4); // The bottom left "base point" of the map.
         short xCount = readShort();
         short zCount = readShort();
@@ -157,11 +167,32 @@ public class MAPFile extends GameFile {
         int totalGroups = xCount * zCount;
         //TODO: Finish
 
-        //   POLYGON DATA "POLY"   //
-        //TODO
+        //     POLYGON DATA "POLY"     //
+        jump(MapBlock.POLYGONS);
+        for (PrimType prim : PrimType.values())
+            prim.setCount(readShort()); // Load counts
+        readShort(); // Padding
+        for (PrimType prim : PrimType.values())
+            prim.setOffset(readInt()); // Get the offsets
+
+        for (PrimType type : PrimType.values()) { // Load all geometry.
+            System.out.println(type.name() + " Prims:");
+            System.out.println("Address: " + Integer.toHexString(type.getOffset()));
+            System.out.println("Count: " + type.getCount());
+
+            List<Poly> data = new ArrayList<>();
+            polygonData.put(type, data);
+
+            if (type.getCount() > 0) {
+                jump(type.getOffset());
+                for (int i = 0; i < type.getCount(); i++)
+                    data.add(type.readNew(this));
+            }
+        }
 
 
         //   VERTEX  DATA "VRTX"   //
+        jump(MapBlock.VRTX);
         int vertexCount = readInt();
         for (int i = 0; i < vertexCount; i++) {
             getVertexes().add(new Vertex(readShort(), readShort(), readShort())); // Read vertices.
@@ -169,6 +200,7 @@ public class MAPFile extends GameFile {
         }
 
         //   LEVEL  GRID  "GRID"   // TODO: Why does this resemble the GROU header?
+        jump(MapBlock.GRID);
         short gridXCount = readShort();
         short gridZCount = readShort();
         short gridXLength = readShort();
@@ -176,14 +208,38 @@ public class MAPFile extends GameFile {
         //TODO: Finish
 
         //   ANIMATION DATA "ANIM"    //
+        jump(MapBlock.ANIM);
         int animCount = readInt();
         int animOffset = readInt(); // The location in this file animation data is located at.
         //TODO: Is this ever used? It may be used in the cave levels to animate textures?
 
+        exportOBJ();
+
+    }
+
+    @SneakyThrows // Export this file as an OBJ.
+    private void exportOBJ() {
+        System.out.println("Exporting OBJ.");
+        @Cleanup PrintWriter out = new PrintWriter(getDestination("MAP_OBJ") + getFile().getName().split("\\.")[0] + ".obj");
+        out.write("#FrogAPI Map Export\n");
+
+        // Vertice List: TODO COLOR
+        for (Vertex v : getVertexes())
+            out.write(String.format("v %s %s %s\n", toFloat(v.getX()), toFloat(v.getY()), toFloat(v.getZ())));
+
+        // Add verices.
+        for (PrimType prim : PrimType.values())
+            for (Poly poly : polygonData.get(prim))
+                out.write("f " + poly + "\n");
+    }
+
+    private float toFloat(short s) {
+        return (float) s / (float) Short.MAX_VALUE;
     }
 
     @SneakyThrows
     private void jump(MapBlock mb) {
+        System.out.println("Reading " + mb.getKey() + " chunk at 0x" + Integer.toHexString(mb.getOffset()));
         ByteUtils.jumpTo(fis, mb.getOffset());
         assert mb.getKey().equals(readString(4));
     }
@@ -197,11 +253,12 @@ public class MAPFile extends GameFile {
     @Getter
     private enum MapBlock {
         GENERAL("GENE"),
-        PATH("PATH"),
-        ZONE("ZONE"),
+        GRAPHICAL("GRAP"),
         FORM("FORM"),
         ENTITY("EMTP"),
-        GRAPHICAL("GRAP"),
+        ZONE("ZONE"),
+        PATH("PATH"),
+
         LIGHTS("LITE"),
         GROU("GROU"),
         POLYGONS("POLY"),
@@ -217,7 +274,43 @@ public class MAPFile extends GameFile {
         }
 
         public boolean isSub() {
-            return ordinal() > GRAPHICAL.ordinal();
+            return ordinal() > PATH.ordinal();
+        }
+    }
+
+    private enum PrimType { // Shading comparisons: http://cf.ydcdn.net/1.0.1.81/images/computer/_SHADING.GIF
+        F3(PolyF.class, 3), // "Flat shaded" triangle. (12 bytes)
+        F4(PolyF.class, 4), // "Flat shaded" rectangle. (12 bytes)
+        FT3(PolyT.class, 3, 1), // Flat textured triangle. (28 bytes)
+        FT4(PolyT.class, 4, 1), // Flat rextures rectangle. (28 bytes)
+        G3(PolyG.class, 3), // "Gouraud shaded" triangle. (20 bytes)
+        G4(PolyG.class, 4), // "Gouraud shaded" rectangle. (24 bytes)
+        GT3(PolyT.class, 3, 3), // "Gouraud shaded" + TEXTURED triangle. // (36 bytes)
+        GT4(PolyT.class, 4, 4), // "Gouraud shaded" + TEXTURED rectangle. // (40 bytes)
+        G2(PolyG.class, 2); // Has to do with map_groups on the edge of the world. Not used in release-build. (
+
+        private Constructor<? extends Poly> construct;
+        private final int[] args;
+        @Getter @Setter private short count;
+        @Getter @Setter private int offset;
+
+        @SuppressWarnings("unchecked")
+        PrimType(Class<? extends Poly> clazz, int... args) {
+            this.args = args;
+            try {
+                this.construct = (Constructor<? extends Poly>) clazz.getDeclaredConstructors()[0];
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        @SneakyThrows
+        public Poly readNew(MAPFile map) {
+            Object[] pass = new Object[args.length + 1];
+            for (int i = 0; i < args.length; i++)
+                pass[i + 1] = args[i];
+            pass[0] = map;
+            return construct.newInstance(pass);
         }
     }
 
@@ -279,7 +372,7 @@ public class MAPFile extends GameFile {
         private char blue;
         private char cd; // Unknown "Color D"?
 
-        public ColorVector() throws IOException {
+        public ColorVector() {
             setRed(readChar());
             setGreen(readChar());
             setBlue(readChar());
@@ -288,23 +381,97 @@ public class MAPFile extends GameFile {
     }
 
     @Getter @Setter
-    private class Poly {
-        private short vertices[];
+    private class MapUV {
+        private byte u;
+        private byte v;
 
-        public Poly(int verticeCount) throws IOException {
-            vertices = new short[verticeCount];
-            for (int i = 0; i < verticeCount; i++)
-                vertices[i] = readShort(); // Read vertice data.
+        public MapUV() {
+            this.u = readByte();
+            this.v = readByte();
         }
     }
 
-    private class PolyF3 extends Poly {
+    @Getter @Setter
+    public class Poly {
+        private short vertices[];
+
+        public Poly(int verticeCount) {
+            vertices = new short[verticeCount];
+            for (int i = 0; i < verticeCount; i++)
+                vertices[i] = (short) (readShort() + 1); // Read vertice data.
+
+            // swap elements 3 and 4.
+            if (vertices.length == 4) {
+                short temp = vertices[2];
+                vertices[2] = vertices[3];
+                vertices[3] = temp;
+            }
+
+            if (verticeCount % 2 != 0)
+                readShort(); // Padding
+        }
+
+        @Override
+        public String toString() {
+            String ret = "";
+            for (int i = 0; i < vertices.length; i++)
+                ret += " " + vertices[i];
+            return ret.substring(1);
+        }
+    }
+
+    @Getter @Setter
+    public class PolyG extends Poly {
+        private ColorVector[] colors;
+
+        public PolyG(int count) {
+            super(count);
+            setColors(new ColorVector[count]);
+            for (int i = 0; i < count; i++)
+                getColors()[i] = new ColorVector();
+        }
+    }
+
+    @Getter @Setter
+    public class PolyT extends Poly {
+        private short flags;
+        private MapUV[] uvs;
+        private short clutId;
+        private short textureId;
+        private ColorVector[] vectors;
+
+        public PolyT(int count, int rgbCount) {
+            super(count);
+            this.uvs = new MapUV[count];
+            setFlags(readShort());
+            readShort(); // Padding
+            this.uvs[0] = new MapUV(); // Read first MapUV
+            setClutId(readShort()); // Read CLUT id.
+            this.uvs[1] = new MapUV(); // Read next MapUV.
+            setTextureId(readShort()); // Read texture id.
+
+            // Read the rest of the UVs.
+            for (int i = 0; i < uvs.length; i++)
+                if (uvs[i] == null)
+                    uvs[i] = new MapUV();
+
+            if (count % 2 != 0)
+                readShort(); // Padding
+
+            // Read all vertex color info.
+            this.vectors = new ColorVector[rgbCount];
+            for (int i = 0; i < rgbCount; i++)
+                this.vectors[i] = new ColorVector();
+        }
+    }
+
+    @Getter @Setter
+    public class PolyF extends Poly {
         private ColorVector color;
 
-        public PolyF3() throws IOException {
-            super(3);
-            readShort(); // Padding
-            this.color = new ColorVector();
+        public PolyF(int count) {
+            super(count);
+            setColor(new ColorVector());
         }
     }
 }

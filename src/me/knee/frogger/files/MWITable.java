@@ -99,7 +99,7 @@ public class MWITable extends GameFile {
 			if (fd.getType() == FileType.WAD)
 				currentTheme = fd.getFullName();
 
-			if (fd.getType() == FileType.ENTITY || fd.getType() == FileType.ENTITY_WIN95) {
+			if (fd.getType() == FileType.XMR || fd.getType() == FileType.XAR) {
 				getThemes().putIfAbsent(currentTheme, new ArrayList<>());
 				getThemes().get(currentTheme).add(fd.getFullName());
 			}

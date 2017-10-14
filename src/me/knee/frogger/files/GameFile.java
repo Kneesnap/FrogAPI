@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 import lombok.Getter;
+import lombok.SneakyThrows;
 import me.knee.frogger.ByteUtils;
 
 /**
@@ -105,31 +106,38 @@ public abstract class GameFile {
 	 */
 	public abstract void loadFrog() throws IOException;
 
-	protected int readInt() throws IOException {
+	@SneakyThrows
+	protected int readInt() {
 		return ByteUtils.readInt(fis);
 	}
 
-	protected char readChar() throws IOException {
+	@SneakyThrows
+	protected char readChar() {
 		return ByteUtils.readChar(fis);
 	}
 
-	protected byte readByte() throws IOException {
+	@SneakyThrows
+	protected byte readByte() {
 		return ByteUtils.readByte(fis);
 	}
 
-	protected String readString(int length) throws IOException {
+	@SneakyThrows
+	protected String readString(int length) {
 		return ByteUtils.readString(fis, length);
 	}
 
-	protected short readShort() throws IOException {
+	@SneakyThrows
+	protected short readShort() {
 		return ByteUtils.readShort(fis);
 	}
 
-	protected byte[] readBytes(int bytes) throws IOException {
+	@SneakyThrows
+	protected byte[] readBytes(int bytes) {
 		return ByteUtils.readBytes(fis, bytes);
 	}
 
-	protected void jump(int offset) throws IOException {
+	@SneakyThrows
+	protected void jump(int offset) {
 		ByteUtils.jumpTo(fis, offset);
 	}
 }

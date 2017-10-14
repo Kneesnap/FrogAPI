@@ -18,12 +18,13 @@ public enum FileType {
 	WAD(WADArchive.class, "Theme Pack", 20),
 	MAP(MAPFile.class, "Frogger Level", 33),
 	VLO(VLOArchive.class, "Packed Textures", 17),
-	GRV(PSXGRPArchive.class, "PSX Packed Textures", 17, "2gr"),
 	VB("Sound Data", 1),
-	ENTITY(FOMFile.class, "Frogger 3D Model", 2),
-	ENTITY_WIN95(FOMFile.class, "Frogger 3D Model Low Detail", 2),
+	XAR(FOMFile.class, "Frogger MOF Model", 2),
+	XMR(FOMFile.class, "Frogger MOF Model (?)", 2),
 	DAT(DemoFile.class, "Recorded Demo", 1),
 	PAL("Color Palette", 1),
+
+	GRV(PSXGRPArchive.class, "PSX Packed Textures", 17, "2gr"),
 	
 	//Special cases
 	VH("Sound Header", 1),

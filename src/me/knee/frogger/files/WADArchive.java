@@ -51,7 +51,7 @@ public class WADArchive extends GameFile {
 			if (unknown == 0xFFFFFFFF)
 				break; // 0xFFFFFFFF says there are no more files.
 			
-			int a = ByteUtils.readInt(fis); // Unknown, appears to always be four.
+			int a = ByteUtils.readInt(fis); // Unknown, appears to always be three or four. (Maybe it's file type)
 			int size = ByteUtils.readInt(fis);
 			int b = ByteUtils.readInt(fis); // Unknown. Is it always zero?
 			
