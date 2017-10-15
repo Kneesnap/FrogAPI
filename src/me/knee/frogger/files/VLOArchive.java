@@ -6,6 +6,8 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import lombok.Getter;
+import lombok.Setter;
 import me.knee.frogger.ByteUtils;
 import me.knee.frogger.FilePicker;
 import me.knee.frogger.FileType;
@@ -20,10 +22,13 @@ import me.knee.frogger.FileType;
  */
 public class VLOArchive extends GameFile {
 	
-	private List<ImageData> images;
+	@Getter private List<ImageData> images;
+	@Setter private boolean flip = true;
+	@Setter private String output;
 
 	public VLOArchive(File f) {
 		super(f);
+		output = getDestination("TEXTURES");
 	}
 
 	@Override
@@ -61,6 +66,7 @@ public class VLOArchive extends GameFile {
 		for (int i = 0; i < fileCount; i++) { // Create image data the file.
 			ImageData id = images.get(i);
 			id.setReadSize(offsets[i + 1] - offsets[i]);
+			id.setFlip(this.flip);
 			try {
 				id.loadFrog();
 			} catch (Exception e) {
@@ -75,12 +81,11 @@ public class VLOArchive extends GameFile {
 	
 	private void extract() {
 		System.out.println("Extracting textures...");
-		String dir = getDestination("TEXTURES");
 		
 		for (int i = 0; i < this.images.size(); i++) {
 			ImageData d =  this.images.get(i);
 			System.out.println("Extracting image " + i + "/" + (this.images.size() - 1) + ", Dimensions = [" + d.getWidth() + "," + d.getHeight() + "] Size = " + d.getReadSize());
-			d.saveBMP(new File(dir + i + ".bmp"));
+			d.saveBMP(new File(output + i + ".bmp"));
 		}
 		System.out.println("Textures extracted.");
 	}

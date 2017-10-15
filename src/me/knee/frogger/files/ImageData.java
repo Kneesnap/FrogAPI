@@ -4,6 +4,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
 
+import com.google.common.io.Files;
 import lombok.Cleanup;
 import lombok.Getter;
 import lombok.Setter;
@@ -24,6 +25,7 @@ public class ImageData extends GameFile {
 	private byte[] data; //data = Loaded from VLO.
 	@Getter private int width;
 	@Getter private int height;
+	@Setter private boolean flip = true;
 	
 	private static String HEADER_ID = "BM";
 	private static byte[] DIB_HEADER = new byte[] {
@@ -68,7 +70,7 @@ public class ImageData extends GameFile {
 			this.height = ByteUtils.readInt(fis); // Image height
 			ByteUtils.readBytes(fis, 8); // 1, Bits Per Pixel, Compression method. (Ignored.)
 			int imageSize = ByteUtils.readInt(fis);	
-			ByteUtils.readBytes(fis, startAddress - 0x26); //Skip to the start address.
+			ByteUtils.readBytes(fis, startAddress - 26); //Skip to the start address.
 			this.data = ByteUtils.readBytes(fis, imageSize); //TODO: Flip
 			
 		} else {
@@ -117,11 +119,15 @@ public class ImageData extends GameFile {
 	 */
 	@SneakyThrows
 	private void write(byte[] data, File f) {
-		BufferedImage original = ImageIO.read(new ByteArrayInputStream(data));
-		BufferedImage newImage = new BufferedImage(original.getWidth(), original.getHeight(), original.getType());
-		Graphics2D gg = newImage.createGraphics();
-		gg.drawImage(original, 0, original.getHeight(), original.getWidth(), -original.getHeight(), null);
-		ImageIO.write(newImage, "BMP", f);
-		gg.dispose();
+		if (flip) {
+			BufferedImage original = ImageIO.read(new ByteArrayInputStream(data));
+			BufferedImage newImage = new BufferedImage(original.getWidth(), original.getHeight(), original.getType());
+			Graphics2D gg = newImage.createGraphics();
+			gg.drawImage(original, 0, original.getHeight(), original.getWidth(), -original.getHeight(), null);
+			ImageIO.write(newImage, "BMP", f);
+			gg.dispose();
+		} else {
+			Files.write(data, f);
+		}
 	}
 }

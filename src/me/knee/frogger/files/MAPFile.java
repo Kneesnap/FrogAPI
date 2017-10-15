@@ -2,16 +2,16 @@ package me.knee.frogger.files;
 
 import lombok.*;
 import me.knee.frogger.ByteUtils;
+import me.knee.frogger.FilePicker;
+import me.knee.frogger.FileType;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.lang.reflect.Constructor;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Stream;
 
 /**
  * Handles .MAP files.
@@ -32,8 +32,14 @@ public class MAPFile extends GameFile {
     private List<Vertex> vertexes = new ArrayList<>();
     private Map<PrimType, List<Poly>> polygonData = new HashMap<>();
 
+    private VLOArchive vlo;
+
     public MAPFile(File file) {
         super(file);
+        this.vlo = new VLOArchive(FilePicker.pickFileSync("Please select the corresponding VLO file.", FileType.VLO));
+        vlo.setOutput(getDestination("MAP_OBJ"));
+        //vlo.setFlip(false);
+        vlo.load();
     }
 
 
@@ -214,23 +220,67 @@ public class MAPFile extends GameFile {
         //TODO: Is this ever used? It may be used in the cave levels to animate textures?
 
         exportOBJ();
-
     }
 
     @SneakyThrows // Export this file as an OBJ.
     private void exportOBJ() {
         System.out.println("Exporting OBJ.");
-        @Cleanup PrintWriter out = new PrintWriter(getDestination("MAP_OBJ") + getFile().getName().split("\\.")[0] + ".obj");
-        out.write("#FrogAPI Map Export\n");
 
-        // Vertice List: TODO COLOR
+        String name = getFile().getName().split("\\.")[0];
+        String baseName = getDestination("MAP_OBJ") + name;
+
+        @Cleanup PrintWriter out = new PrintWriter(baseName + ".obj");
+        out.write("#FrogAPI Map Export\n");
+        out.write("mtllib " + name + ".mtl\n");
+
+        // Vertice List:
         for (Vertex v : getVertexes())
             out.write(String.format("v %s %s %s\n", toFloat(v.getX()), toFloat(v.getY()), toFloat(v.getZ())));
 
-        // Add verices.
-        for (PrimType prim : PrimType.values())
-            for (Poly poly : polygonData.get(prim))
-                out.write("f " + poly + "\n");
+        List<Poly> polygons = new ArrayList<>();
+        Stream.of(PrimType.values()).map(polygonData::get).forEach(polygons::addAll);
+        polygons.sort(Comparator.comparingInt(Poly::compare));
+
+        // Register the vertices as texture
+        for (Poly poly : polygons) {
+            if (poly instanceof PolyT) {
+                for (MapUV uv : ((PolyT) poly).getUvs()) {
+                    ImageData data = vlo.getImages().get(((PolyT) poly).getTextureId());
+                    out.write("vt " + toFloat(uv.getU()) * data.getWidth() + " " + toFloat(uv.getV()) * data.getHeight() + "\n");
+                }
+            }
+        }
+
+        // Add textures.
+        int texId = -1;
+        int vtId = 1;
+        for (Poly poly : polygons) {
+            if (poly instanceof PolyT) {
+                PolyT t = (PolyT) poly;
+
+                if (t.getTextureId() != texId) {
+                    texId = t.getTextureId();
+                    out.write("usemtl tex" + texId + "\n");
+                }
+            }
+
+            String line = "f";
+            for (int i = 0; i < poly.getVertices().length; i++)
+                line += " " + poly.getVertices()[i] + (poly instanceof PolyT ? "/" + vtId++ : "");
+            out.write(line + "\n");
+        }
+
+        // Create mtl
+        @Cleanup PrintWriter mtl = new PrintWriter(baseName + ".mtl");
+        for (int i = 0; i <= texId; i++) {
+            mtl.write("newmtl tex" + i + "\n");
+            mtl.write("Kd 1 1 1\n");
+            mtl.write("map_Kd " + i + ".bmp\n\n");
+        }
+    }
+
+    private float toFloat(char c) {
+        return (float) c / 256F;
     }
 
     private float toFloat(short s) {
@@ -282,7 +332,7 @@ public class MAPFile extends GameFile {
         F3(PolyF.class, 3), // "Flat shaded" triangle. (12 bytes)
         F4(PolyF.class, 4), // "Flat shaded" rectangle. (12 bytes)
         FT3(PolyT.class, 3, 1), // Flat textured triangle. (28 bytes)
-        FT4(PolyT.class, 4, 1), // Flat rextures rectangle. (28 bytes)
+        FT4(PolyT.class, 4, 1), // Flat textured rectangle. (28 bytes)
         G3(PolyG.class, 3), // "Gouraud shaded" triangle. (20 bytes)
         G4(PolyG.class, 4), // "Gouraud shaded" rectangle. (24 bytes)
         GT3(PolyT.class, 3, 3), // "Gouraud shaded" + TEXTURED triangle. // (36 bytes)
@@ -370,7 +420,7 @@ public class MAPFile extends GameFile {
         private char red;
         private char green;
         private char blue;
-        private char cd; // Unknown "Color D"?
+        private char cd; // Unknown "Color D"? Alpha
 
         public ColorVector() {
             setRed(readChar());
@@ -378,16 +428,21 @@ public class MAPFile extends GameFile {
             setBlue(readChar());
             setCd(readChar());
         }
+
+        @Override
+        public String toString() {
+            return " " + toFloat(getRed()) + " " + toFloat(getGreen()) + " " + toFloat(getBlue());
+        }
     }
 
     @Getter @Setter
     private class MapUV {
-        private byte u;
-        private byte v;
+        private char u;
+        private char v;
 
         public MapUV() {
-            this.u = readByte();
-            this.v = readByte();
+            this.u = readChar(); //TODO: These might supposed to be multiplied by texture dimensions.
+            this.v = readChar();
         }
     }
 
@@ -411,12 +466,8 @@ public class MAPFile extends GameFile {
                 readShort(); // Padding
         }
 
-        @Override
-        public String toString() {
-            String ret = "";
-            for (int i = 0; i < vertices.length; i++)
-                ret += " " + vertices[i];
-            return ret.substring(1);
+        public int compare() {
+            return this instanceof PolyT ? ((PolyT) this).getTextureId() : 0;
         }
     }
 
@@ -449,6 +500,14 @@ public class MAPFile extends GameFile {
             setClutId(readShort()); // Read CLUT id.
             this.uvs[1] = new MapUV(); // Read next MapUV.
             setTextureId(readShort()); // Read texture id.
+            if (getTextureId() == 0) // Test code for ORG1. (Remove later)
+                setTextureId((short) 51);
+            if (getTextureId() == 1)
+                setTextureId((short) 41);
+            if (getTextureId() == 2)
+                setTextureId((short) 40);
+            if (getTextureId() == 3)
+                setTextureId((short) 50);
 
             // Read the rest of the UVs.
             for (int i = 0; i < uvs.length; i++)
