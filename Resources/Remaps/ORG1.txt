@@ -1,0 +1,17 @@
+#Texture remap list for ORG1.
+51 # Image = 51.bmp, Internal ID = 0
+41 # Image = 41.bmp, Internal ID = 1
+40 # etc. Each line increments the internal id while the number on the line is the texture id it should be remapped to.
+50
+23
+22
+24
+21
+26
+20
+25
+9
+39
+10
+11
+0

@@ -3,7 +3,9 @@ package me.knee.frogger.cheats;
 import com.sprogcoder.memory.JTrainer;
 import com.sprogcoder.memory.exception.WindowNotFoundException;
 import lombok.Getter;
+import lombok.SneakyThrows;
 import me.knee.frogger.Main;
+import org.jnativehook.keyboard.NativeKeyEvent;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -24,8 +26,8 @@ public class CheatEngine {
      * Register all cheats.
      */
     private static void registerCheats() {
-        cheats.add(new LockCheat("Lives", 0x498790));
-        cheats.add(new SetCheat("Time", 0x475938, 1));
+        cheats.add(new LockCheat("Lives", 0x498790).setKey(NativeKeyEvent.VC_L));
+        cheats.add(new LockCheat("Time", 0x475938, 1).setKey(NativeKeyEvent.VC_Z));
         cheats.add(new Freecam());
         cheats.add(new CaveLighting());
     }
@@ -41,13 +43,9 @@ public class CheatEngine {
     /**
      * Attach to the current Frogger game, if any.
      */
+    @SneakyThrows
     public static void attachProcess() {
-        try {
-            new CheatGUI();
-            tryWindows( "Frogger v3.0e", "Frogger v3.0e - Paused");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        tryWindows("Frogger v3.0e", "Frogger v3.0e - Paused");
     }
 
     private static void tryWindows(String... windows) {

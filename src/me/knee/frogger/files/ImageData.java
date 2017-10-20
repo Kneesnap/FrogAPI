@@ -76,7 +76,6 @@ public class ImageData extends GameFile {
 		} else {
 			// We're using data from a VLO.
 			this.data = ByteUtils.readBytes(fis, this.readSize);
-			System.out.println(this.data.length);
 		}
 	}
 	

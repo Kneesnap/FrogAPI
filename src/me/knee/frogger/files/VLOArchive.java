@@ -54,11 +54,11 @@ public class VLOArchive extends GameFile {
 			
 			offsets[i] = offset;
 			images.add(new ImageData(fis, (int) width, (int) height));
-			
-			System.out.println("Width = " + width);
-			System.out.println("Height = " + height);
-			System.out.println("Offset = " + offset);
-			ByteUtils.readBytes(fis, 16); // Unknown data.
+
+			System.out.println("Image " + (i + 1) + "(" + width + ", " + height + ") At 0x" + Integer.toHexString(offset));
+			for (int j = 0; j < 16; j++)
+				System.out.println(toFloat(readByte()));
+			//System.out.println(ByteUtils.toRawString(readBytes(16))); // Unknown data.
 		}
 		offsets[fileCount] = (int) getFile().length(); // So the last image doesn't have an error.
 		
@@ -88,5 +88,12 @@ public class VLOArchive extends GameFile {
 			d.saveBMP(new File(output + i + ".bmp"));
 		}
 		System.out.println("Textures extracted.");
+	}
+
+	private float toFloat(byte b) { // Only works on unsigned bytes.
+		float num = (float) b;
+		if (num < 0) // convert byte to unsigned byte.
+			num += 0xFF;
+		return num / 0xFF;
 	}
 }

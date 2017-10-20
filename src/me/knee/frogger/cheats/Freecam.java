@@ -29,7 +29,7 @@ public class Freecam extends Cheat {
     private static Map<Offset, Integer> map = new HashMap<>();
 
     public Freecam() {
-        super("Freecam");
+        super("Freecam", VC_B);
     }
 
     @Override
@@ -49,7 +49,7 @@ public class Freecam extends Cheat {
                 System.out.println(o.name() + ": " + readInt(o.getOffset()) + " (" + map.get(o) + ")");
         } else if (key == VC_9) {
             this.dump(0x497164, 2);
-        } else if (key == VC_C) {
+        } else if (key == VC_T) {
             // Move Frogger to camera.
             for (int i = 0; i < 3; i++)
                 set(0x498680 + (4 * i), map.get(Offset.values()[i]));
