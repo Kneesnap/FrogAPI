@@ -33,7 +33,6 @@ public class MAPFile extends GameFile {
     private List<Vertex> vertexes = new ArrayList<>();
     private Map<PrimType, List<Poly>> polygonData = new HashMap<>();
 
-    private VLOArchive vlo;
     private Map<Integer, Integer> textureRemap = new HashMap<>();
 
     @SneakyThrows
@@ -79,9 +78,9 @@ public class MAPFile extends GameFile {
         if (vloFile == null || !vloFile.exists()) // Fallback if we can't find it.
             vloFile = FilePicker.pickFileSync("Please select the corresponding VLO file.", FileType.VLO);
 
-        this.vlo = new VLOArchive(vloFile);
+        // Extract textures to right place.
+        VLOArchive vlo = new VLOArchive(vloFile);
         vlo.setOutput(getDestination("MAP_OBJ"));
-        //vlo.setFlip(false);
         vlo.load();
     }
 
@@ -278,21 +277,17 @@ public class MAPFile extends GameFile {
 
         // Vertice List:
         for (Vertex v : getVertexes())
-            out.write(String.format("v %s %s %s\n", toFloat(v.getX()), toFloat(v.getY()), toFloat(v.getZ())));
+            out.write(String.format("v %s %s %s\n", -toFloat(v.getX()), -toFloat(v.getY()), -toFloat(v.getZ()))); // Negative inverts normals.
 
         List<Poly> polygons = new ArrayList<>();
         Stream.of(PrimType.values()).map(polygonData::get).forEach(polygons::addAll);
         polygons.sort(Comparator.comparingInt(Poly::compare));
 
         // Register the vertices as texture
-        for (Poly poly : polygons) {
-            if (poly instanceof PolyT) {
-                for (MapUV uv : ((PolyT) poly).getUvs()) {
-                    ImageData data = vlo.getImages().get(((PolyT) poly).getTextureId());
+        for (Poly poly : polygons)
+            if (poly instanceof PolyT)
+                for (MapUV uv : ((PolyT) poly).getUvs())
                     out.write("vt " + toFloat(uv.getU()) + " " + toFloat(uv.getV()) + "\n");
-                }
-            }
-        }
 
         // Add textures.
         int texId = -1;
@@ -553,6 +548,12 @@ public class MAPFile extends GameFile {
             for (int i = 0; i < uvs.length; i++)
                 if (uvs[i] == null)
                     uvs[i] = new MapUV();
+
+            if (count == 4) {
+                MapUV temp = uvs[2];
+                uvs[2] = uvs[3];
+                uvs[3] = temp;
+            }
 
             if (count % 2 != 0)
                 readShort(); // Padding
