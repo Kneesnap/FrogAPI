@@ -86,11 +86,4 @@ public class VLOArchive extends GameFile {
 		}
 		System.out.println("Textures extracted.");
 	}
-
-	private float toFloat(byte b) { // Only works on unsigned bytes.
-		float num = (float) b;
-		if (num < 0) // convert byte to unsigned byte.
-			num += 0xFF;
-		return num / 0xFF;
-	}
 }

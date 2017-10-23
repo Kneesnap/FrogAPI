@@ -67,6 +67,7 @@ public class MAPFile extends GameFile {
 
 
             // Try to load VLO
+            levelTag = levelTag.split("_")[0]; // Fix for WIN95 levels
             if (!levelTag.endsWith("M")) // If it's not a multiplayer level, drop the level id.
                 levelTag = levelTag.substring(0, levelTag.length() - 1);
             vloFile = new File(file.getParent() + File.separator + levelTag + "_VRAM" + (file.getName().contains("WIN95") ? "_WIN95" : "") + ".VLO");
@@ -277,7 +278,7 @@ public class MAPFile extends GameFile {
 
         // Vertice List:
         for (Vertex v : getVertexes())
-            out.write(String.format("v %s %s %s\n", -toFloat(v.getX()), -toFloat(v.getY()), -toFloat(v.getZ()))); // Negative inverts normals.
+            out.write(String.format("v %s %s %s\n", -toFloat(v.getX()), -toFloat(v.getY()), toFloat(v.getZ()))); // Negative inverts normals.
 
         List<Poly> polygons = new ArrayList<>();
         Stream.of(PrimType.values()).map(polygonData::get).forEach(polygons::addAll);
@@ -290,6 +291,10 @@ public class MAPFile extends GameFile {
                     out.write("vt " + toFloat(uv.getU()) + " " + toFloat(uv.getV()) + "\n");
 
         // Add textures.
+        List<ColorVector> fColors = new ArrayList<>();
+        Map<Integer, List<Poly>> vertexColors = new HashMap<>();
+
+        Set<Integer> textureIds = new HashSet<>();
         int texId = -1;
         int vtId = 1;
         for (Poly poly : polygons) {
@@ -298,22 +303,49 @@ public class MAPFile extends GameFile {
 
                 if (t.getTextureId() != texId) {
                     texId = t.getTextureId();
+                    textureIds.add(texId);
                     out.write("usemtl tex" + texId + "\n");
                 }
+
+                String line = "f";
+                for (int i = 0; i < poly.getVertices().length; i++)
+                    line += " " + poly.getVertices()[i] + "/" + vtId++;
+                out.write(line + "\n");
             }
 
-            String line = "f";
-            for (int i = 0; i < poly.getVertices().length; i++)
-                line += " " + poly.getVertices()[i] + (poly instanceof PolyT ? "/" + vtId++ : "");
-            out.write(line + "\n");
+            if (poly instanceof PolyF || poly instanceof PolyG) {
+                ColorVector color = poly instanceof PolyF ? ((PolyF) poly).getColor() : ((PolyG) poly).getColors()[0];
+                if (!fColors.contains(color))
+                    fColors.add(color);
+                int id = fColors.indexOf(color);
+                vertexColors.putIfAbsent(id, new ArrayList<>());
+                vertexColors.get(id).add(poly);
+            }
+        }
+
+        out.write("#Non-Textured Polys\n");
+        for (Integer color : vertexColors.keySet()) {
+            out.write("usemtl color" + color + "\n");
+            for (Poly p : vertexColors.get(color)) {
+                out.write("f");
+                for (short s : p.getVertices())
+                    out.write(" " + s + "/1");
+                out.write("\n");
+            }
         }
 
         // Create mtl
         @Cleanup PrintWriter mtl = new PrintWriter(baseName + ".mtl");
-        for (int i = 0; i <= texId; i++) {
+        for (Integer i : textureIds) {
             mtl.write("newmtl tex" + i + "\n");
             mtl.write("Kd 1 1 1\n");
             mtl.write("map_Kd " + i + ".bmp\n\n");
+        }
+
+        for (int i = 0; i < fColors.size(); i++) {
+            ColorVector cv = fColors.get(i);
+            mtl.write("newmtl color" + i + "\n");
+            mtl.write(String.format("Kd %s %s %s\n\n", toFloat(cv.getRed()), toFloat(cv.getGreen()), toFloat(cv.getBlue())));
         }
     }
 
@@ -474,6 +506,12 @@ public class MAPFile extends GameFile {
         public String toString() {
             return " " + toFloat(getRed()) + " " + toFloat(getGreen()) + " " + toFloat(getBlue());
         }
+
+        @Override
+        public boolean equals(Object obj) {
+            ColorVector cv = (ColorVector) obj;
+            return getRed() == cv.getRed() && getGreen() == cv.getGreen() && getBlue() == cv.getBlue();
+        }
     }
 
     @Getter @Setter
@@ -482,7 +520,7 @@ public class MAPFile extends GameFile {
         private byte v;
 
         public MapUV() {
-            this.u = readByte(); //TODO: These might supposed to be multiplied by texture dimensions.
+            this.u = readByte();
             this.v = readByte();
         }
     }

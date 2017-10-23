@@ -31,7 +31,6 @@ public class WADArchive extends GameFile {
 
 	@Override
 	protected void saveFrog(OutputStream data) throws IOException {
-		
 		for (DummyFile df : getFiles()) {
 			ByteUtils.writeInt(data, 0); // Unknown. Could be an object id, as they appear to be unique except for dummied out data. TODO
 			ByteUtils.writeInt(data, 4); // Unknown - Appears to always be four.
@@ -46,9 +45,9 @@ public class WADArchive extends GameFile {
 		int at = 0;
 		while (true) {
 			count++;
-			
-			int unknown = ByteUtils.readInt(fis);
-			if (unknown == 0xFFFFFFFF)
+
+			int id = readInt();
+			if (id == 0xFFFFFFFF)
 				break; // 0xFFFFFFFF says there are no more files.
 			
 			int a = ByteUtils.readInt(fis); // Unknown, appears to always be three or four. (Maybe it's file type)
@@ -56,8 +55,8 @@ public class WADArchive extends GameFile {
 			int b = ByteUtils.readInt(fis); // Unknown. Is it always zero?
 			
 			at += 16;
-			System.out.println("File " + count + " - 0x" + Integer.toHexString(at) + "(" + unknown + ", " + a + ", " + size + ", " + b + ")");
-			files.add(new DummyFile(ByteUtils.readBytes(fis, size)));
+			System.out.println("File " + count + " - 0x" + Integer.toHexString(at) + "(" + id + ", " + a + ", " + size + ", " + b + ")");
+			files.add(new DummyFile(readBytes(size)));
 			at += size;
 		}
 		
