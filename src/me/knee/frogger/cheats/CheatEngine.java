@@ -72,6 +72,7 @@ public class CheatEngine {
                 c.onTick();
             } catch (Exception e) {
                 // Program was killed.
+                trainer = null; // isAttached() should be false now.
                 e.printStackTrace();
                 Thread.currentThread().interrupt();
                 System.exit(0);

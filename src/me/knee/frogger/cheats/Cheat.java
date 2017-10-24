@@ -9,6 +9,8 @@ import me.knee.frogger.ByteUtils;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * A cheat object.
@@ -21,6 +23,7 @@ public abstract class Cheat {
     private String name;
     private byte[][] lastDump;
     private int key;
+    private Map<Integer, Byte[]> noppedCode = new HashMap<>();
 
     public Cheat(String name) {
         this(name, -1);
@@ -47,6 +50,21 @@ public abstract class Cheat {
      * Calls when the cheat is disabled.
      */
     public void onDisable() {
+        // Restore any nopped code.
+        for (Integer address : noppedCode.keySet()) {
+            Byte[] data = noppedCode.get(address);
+            byte[] b = new byte[data.length];
+            for (int i = 0; i < data.length; i++)
+                b[i] = data[i];
+            setBytes(address, b);
+        }
+        noppedCode.clear();
+    }
+
+    /**
+     * Called when this cheat is toggled.
+     */
+    public void onToggle() {
 
     }
 
@@ -65,6 +83,7 @@ public abstract class Cheat {
         }
 
         enabled = en;
+        onToggle();
     }
 
     public void toggle() {
@@ -117,8 +136,12 @@ public abstract class Cheat {
 
     @SneakyThrows
     public void nopCode(int offset, int nops) {
-        for (int i = 0; i < nops; i++)
+        Byte[] b = new Byte[nops];
+        for (int i = 0; i < nops; i++) {
+            b[i] = getByte(offset + i);
             set(offset + i, 0x90);
+        }
+        noppedCode.put(offset, b);
     }
 
     @SneakyThrows
@@ -139,6 +162,15 @@ public abstract class Cheat {
         for (int i = 0; i < copy.length; i++)
             copy[i] = bytes[i];
         CheatEngine.getTrainer().writeProcessMemory(offset, copy);
+    }
+
+    public byte getByte(int address) {
+        return getBytes(address, 1)[0];
+    }
+
+    @SneakyThrows
+    public byte[] getBytes(int address, int size) {
+        return CheatEngine.getTrainer().readProcessMemory(address, size);
     }
 
     public void change(int offset, int value) throws MemoryException {

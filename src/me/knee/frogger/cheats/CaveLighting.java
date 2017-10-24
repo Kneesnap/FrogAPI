@@ -21,6 +21,6 @@ public class CaveLighting extends Cheat {
 
     @Override
     public void onTick() throws MemoryException {
-        set(0x497A10, Integer.MAX_VALUE);
+        set(0x497A10, Integer.MAX_VALUE - 100); // -100 prevents croaking from turning the screen black.
     }
 }
