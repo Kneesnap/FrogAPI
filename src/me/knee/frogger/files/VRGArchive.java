@@ -9,18 +9,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * VLOArchive - Represents .VLO image archives.
+ * VRGArchive - Image archive format used in PSX version.
+ * 2VRG (file marker) stands for Vorg2.
+ * Vorg2 was used to create these images by the original team. (In-house editor)
  * 
- * These archives contains image data including 
- * TODO: Extract Elements.
+ * Untested
  * Created May 11th, 2017.
  * @author Kneesnap
  */
-public class PSXGRPArchive extends GameFile {
+public class VRGArchive extends GameFile {
 
 	private List<ImageData> images;
 
-	public PSXGRPArchive(File f) {
+	public VRGArchive(File f) {
 		super(f);
 	}
 
@@ -31,12 +32,15 @@ public class PSXGRPArchive extends GameFile {
 
 	@Override
 	public void loadFrog() throws IOException {
-		assert "2GRV".equals(ByteUtils.readString(fis, 4)); // Assert the header is correct.
+		assert "2GRV".equals(readString(4)); // Assert the header is correct.
 		
 		this.images = new ArrayList<>();
 
-		int fileCount = ByteUtils.readInt(fis);
-		ByteUtils.readBytes(fis, 12); // DUMMY, ELEMENTS, DUMMY according to BMS.
+		int fileCount = readInt();
+		int txOffset = readInt();
+		int clutCount = readInt();
+		int clutOffset = readInt();
+
 		int[] offsets = new int[fileCount + 1];
 		for (int i = 0; i < fileCount; i++) { //Iterate through each file.
 			short width = ByteUtils.readShort(fis);
