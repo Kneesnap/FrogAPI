@@ -20,9 +20,15 @@ public abstract class Cheat {
     private boolean enabled;
     private String name;
     private byte[][] lastDump;
+    private int key;
 
     public Cheat(String name) {
+        this(name, -1);
+    }
+
+    public Cheat(String name, int key) {
         this.name = name;
+        this.key = key;
     }
 
     /**
@@ -64,6 +70,7 @@ public abstract class Cheat {
     public void toggle() {
         if (CheatEngine.isAttached())
             setEnabled(!isEnabled());
+        System.out.println((isEnabled() ? "Enabled" : "Disabled") + " " + getName());
     }
 
     /**
@@ -171,5 +178,10 @@ public abstract class Cheat {
 
     public void onKeyRelease(int key) {
 
+    }
+
+    public Cheat setKey(int keyCode) {
+        this.key = keyCode;
+        return this;
     }
 }

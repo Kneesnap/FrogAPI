@@ -2,6 +2,7 @@ package me.knee.frogger;
 
 import lombok.Getter;
 import lombok.SneakyThrows;
+import me.knee.frogger.cheats.Cheat;
 import me.knee.frogger.cheats.CheatEngine;
 import org.jnativehook.GlobalScreen;
 import org.jnativehook.keyboard.NativeKeyEvent;
@@ -29,6 +30,16 @@ public class KeyListener implements NativeKeyListener {
     public void nativeKeyPressed(NativeKeyEvent evt) {
         getKeyStates().add(evt.getKeyCode());
         CheatEngine.runAllEnabled(c -> c.onKeyPress(evt.getKeyCode()));
+
+        // Toggle cheats.
+        for (Cheat cheat : CheatEngine.getCheats()) {
+            if (cheat.getKey() == evt.getKeyCode()) {
+                if (!CheatEngine.isAttached())
+                    CheatEngine.attachProcess(); // Try to attach the process.
+                if (CheatEngine.isAttached())
+                    cheat.toggle(); // If it is now attached, toggle the cheat.
+            }
+        }
     }
 
     @Override

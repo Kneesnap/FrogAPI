@@ -15,7 +15,6 @@ import static org.jnativehook.keyboard.NativeKeyEvent.*;
 /**
  * Allows freeform camera movement.
  * TODO: Reset camera position when player dies or level loads
- * TODO: Quad camera stuff.
  * TODO: Allow setting frogger's position to camera.
  * TODO: Fix jitter (Run right after the gametick occurs)
  * TODO: Remove culling
@@ -29,7 +28,7 @@ public class Freecam extends Cheat {
     private static Map<Offset, Integer> map = new HashMap<>();
 
     public Freecam() {
-        super("Freecam");
+        super("Freecam", VC_B);
     }
 
     @Override
@@ -49,7 +48,7 @@ public class Freecam extends Cheat {
                 System.out.println(o.name() + ": " + readInt(o.getOffset()) + " (" + map.get(o) + ")");
         } else if (key == VC_9) {
             this.dump(0x497164, 2);
-        } else if (key == VC_C) {
+        } else if (key == VC_T) {
             // Move Frogger to camera.
             for (int i = 0; i < 3; i++)
                 set(0x498680 + (4 * i), map.get(Offset.values()[i]));
@@ -62,7 +61,6 @@ public class Freecam extends Cheat {
         for (Offset o : Offset.values()) {
             int val = o.keyMove(rotation);
             zero(o.getOffset(), 4);
-            set(o.getOffset(), val);
             setInt(o.getOffset(), val);
             if (readInt(o.getOffset()) != val)
                 System.out.println("Error, " + Integer.toHexString(readInt(o.getOffset())) + " != " + Integer.toHexString(val));
@@ -76,8 +74,8 @@ public class Freecam extends Cheat {
         CAMERA_Z(0x49716C, VC_S, VC_W, 0),
         CAMERA_UNK1(0x49713C, VC_1, VC_2), // Controls X of camera, focused on the target.
         CAMERA_UNK2(0x497140, VC_3, VC_4), // Controls Z of camera, focused on the target.
-        CAMERA_PITCH(0x497144, VC_5, VC_6), // Controls X of target.
-        CAMERA_YAW(0x497148, VC_7, VC_8);  // Controls Z of target.
+        CAMERA_UNK3(0x497144, VC_5, VC_6), // Controls X of target.
+        CAMERA_UNK4(0x497148, VC_7, VC_8);  // Controls Z of target.
 
         private final int offset;
         private final int decrKey;
@@ -107,7 +105,7 @@ public class Freecam extends Cheat {
             if (isGamePaused())
                 return offset;
 
-            int valueChange = ordinal() >= CAMERA_PITCH.ordinal() ? 50 : 25;
+            int valueChange = ordinal() >= CAMERA_UNK3.ordinal() ? 50 : 25;
             if (Main.isKeyPressed(dKey))
                 offset -= valueChange;
             if (Main.isKeyPressed(iKey))

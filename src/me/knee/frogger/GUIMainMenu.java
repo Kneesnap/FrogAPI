@@ -1,6 +1,7 @@
 package me.knee.frogger;
 
 import me.knee.frogger.cheats.CheatEngine;
+import me.knee.frogger.cheats.CheatGUI;
 import me.knee.frogger.files.MWDArchive;
 
 import com.sun.javafx.application.PlatformImpl;
@@ -26,7 +27,10 @@ public class GUIMainMenu {
 		importButton.setOnAction(e -> MWDArchive.createArchive());
 
 		Button mods = new Button("Mods");
-		mods.setOnAction(e -> CheatEngine.attachProcess());
+		mods.setOnAction(e -> {
+			new CheatGUI();
+			CheatEngine.attachProcess();
+		});
 		
 		Button quit = new Button("Exit");
 		quit.setOnAction(e -> PlatformImpl.exit());

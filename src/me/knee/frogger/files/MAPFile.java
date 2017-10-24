@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.lang.reflect.Constructor;
+import java.nio.file.Files;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -32,13 +33,55 @@ public class MAPFile extends GameFile {
     private List<Vertex> vertexes = new ArrayList<>();
     private Map<PrimType, List<Poly>> polygonData = new HashMap<>();
 
-    private VLOArchive vlo;
+    private Map<Integer, Integer> textureRemap = new HashMap<>();
 
+    @SneakyThrows
     public MAPFile(File file) {
         super(file);
-        this.vlo = new VLOArchive(FilePicker.pickFileSync("Please select the corresponding VLO file.", FileType.VLO));
+
+        File vloFile = null;
+        if (file != null) { // Tries to automatically get the VLO.
+            String levelTag = file.getName().split("\\.")[0];
+
+            // Read texture remaps.
+            File remapTxt = new File("Resources/Remaps/" + levelTag + ".txt");
+            System.out.println(remapTxt.getAbsolutePath());
+            if (remapTxt.exists()) {
+                int remapId = 0;
+                List<String> lines = Files.readAllLines(remapTxt.toPath());
+                for (String line : lines) {
+                    line = line.split("#")[0].replaceAll(" ", ""); // Ignore comments.
+                    if (line.length() == 0)
+                        continue; // Line is blank, continue.
+
+                    if (line.contains("=")) { // Allow setting the current id.
+                        remapId = Integer.parseInt(line.split("=")[0]);
+                        line = line.split("=")[1];
+                    }
+
+                    textureRemap.put(remapId++, Integer.parseInt(line));
+                }
+
+                System.out.println("Found remap file, total texture remaps = " + textureRemap.size());
+            }
+
+
+            // Try to load VLO
+            levelTag = levelTag.split("_")[0]; // Fix for WIN95 levels
+            if (!levelTag.endsWith("M")) // If it's not a multiplayer level, drop the level id.
+                levelTag = levelTag.substring(0, levelTag.length() - 1);
+            vloFile = new File(file.getParent() + File.separator + levelTag + "_VRAM" + (file.getName().contains("WIN95") ? "_WIN95" : "") + ".VLO");
+        }
+
+        if (textureRemap.isEmpty())
+            System.out.println("[WARNING] Texture remap file not found for " + getFile() + ", textures may not extract correctly.");
+
+        if (vloFile == null || !vloFile.exists()) // Fallback if we can't find it.
+            vloFile = FilePicker.pickFileSync("Please select the corresponding VLO file.", FileType.VLO);
+
+        // Extract textures to right place.
+        VLOArchive vlo = new VLOArchive(vloFile);
         vlo.setOutput(getDestination("MAP_OBJ"));
-        //vlo.setFlip(false);
         vlo.load();
     }
 
@@ -54,8 +97,8 @@ public class MAPFile extends GameFile {
     @Override
     public void loadFrog() throws IOException {
         //   FILE HEADER   //
-
         assert "FROG".equals(readString(4));
+
         readInt(); // File size.
         System.out.println("Version: " + readString(4));
         System.out.println("Comment: " + readString(64));
@@ -235,23 +278,23 @@ public class MAPFile extends GameFile {
 
         // Vertice List:
         for (Vertex v : getVertexes())
-            out.write(String.format("v %s %s %s\n", toFloat(v.getX()), toFloat(v.getY()), toFloat(v.getZ())));
+            out.write(String.format("v %s %s %s\n", -toFloat(v.getX()), -toFloat(v.getY()), toFloat(v.getZ()))); // Negative inverts normals.
 
         List<Poly> polygons = new ArrayList<>();
         Stream.of(PrimType.values()).map(polygonData::get).forEach(polygons::addAll);
         polygons.sort(Comparator.comparingInt(Poly::compare));
 
         // Register the vertices as texture
-        for (Poly poly : polygons) {
-            if (poly instanceof PolyT) {
-                for (MapUV uv : ((PolyT) poly).getUvs()) {
-                    ImageData data = vlo.getImages().get(((PolyT) poly).getTextureId());
-                    out.write("vt " + toFloat(uv.getU()) * data.getWidth() + " " + toFloat(uv.getV()) * data.getHeight() + "\n");
-                }
-            }
-        }
+        for (Poly poly : polygons)
+            if (poly instanceof PolyT)
+                for (MapUV uv : ((PolyT) poly).getUvs())
+                    out.write("vt " + toFloat(uv.getU()) + " " + toFloat(uv.getV()) + "\n");
 
         // Add textures.
+        List<ColorVector> fColors = new ArrayList<>();
+        Map<Integer, List<Poly>> vertexColors = new HashMap<>();
+
+        Set<Integer> textureIds = new HashSet<>();
         int texId = -1;
         int vtId = 1;
         for (Poly poly : polygons) {
@@ -260,27 +303,57 @@ public class MAPFile extends GameFile {
 
                 if (t.getTextureId() != texId) {
                     texId = t.getTextureId();
+                    textureIds.add(texId);
                     out.write("usemtl tex" + texId + "\n");
                 }
+
+                String line = "f";
+                for (int i = 0; i < poly.getVertices().length; i++)
+                    line += " " + poly.getVertices()[i] + "/" + vtId++;
+                out.write(line + "\n");
             }
 
-            String line = "f";
-            for (int i = 0; i < poly.getVertices().length; i++)
-                line += " " + poly.getVertices()[i] + (poly instanceof PolyT ? "/" + vtId++ : "");
-            out.write(line + "\n");
+            if (poly instanceof PolyF || poly instanceof PolyG) {
+                ColorVector color = poly instanceof PolyF ? ((PolyF) poly).getColor() : ((PolyG) poly).getColors()[0];
+                if (!fColors.contains(color))
+                    fColors.add(color);
+                int id = fColors.indexOf(color);
+                vertexColors.putIfAbsent(id, new ArrayList<>());
+                vertexColors.get(id).add(poly);
+            }
+        }
+
+        out.write("#Non-Textured Polys\n");
+        for (Integer color : vertexColors.keySet()) {
+            out.write("usemtl color" + color + "\n");
+            for (Poly p : vertexColors.get(color)) {
+                out.write("f");
+                for (short s : p.getVertices())
+                    out.write(" " + s + "/1");
+                out.write("\n");
+            }
         }
 
         // Create mtl
         @Cleanup PrintWriter mtl = new PrintWriter(baseName + ".mtl");
-        for (int i = 0; i <= texId; i++) {
+        for (Integer i : textureIds) {
             mtl.write("newmtl tex" + i + "\n");
             mtl.write("Kd 1 1 1\n");
             mtl.write("map_Kd " + i + ".bmp\n\n");
         }
+
+        for (int i = 0; i < fColors.size(); i++) {
+            ColorVector cv = fColors.get(i);
+            mtl.write("newmtl color" + i + "\n");
+            mtl.write(String.format("Kd %s %s %s\n\n", toFloat(cv.getRed()), toFloat(cv.getGreen()), toFloat(cv.getBlue())));
+        }
     }
 
-    private float toFloat(char c) {
-        return (float) c / 256F;
+    private float toFloat(byte b) { // Only works on unsigned bytes.
+        float num = (float) b;
+        if (num < 0) // convert byte to unsigned byte.
+            num += 0xFF;
+        return num / 0xFF;
     }
 
     private float toFloat(short s) {
@@ -290,7 +363,7 @@ public class MAPFile extends GameFile {
     @SneakyThrows
     private void jump(MapBlock mb) {
         System.out.println("Reading " + mb.getKey() + " chunk at 0x" + Integer.toHexString(mb.getOffset()));
-        ByteUtils.jumpTo(fis, mb.getOffset());
+        jump(mb.getOffset());
         assert mb.getKey().equals(readString(4));
     }
 
@@ -416,33 +489,39 @@ public class MAPFile extends GameFile {
     }
 
     @Getter @Setter
-    private class ColorVector {
-        private char red;
-        private char green;
-        private char blue;
-        private char cd; // Unknown "Color D"? Alpha
+    private class ColorVector { // These should all be unsigned
+        private byte red;
+        private byte green;
+        private byte blue;
+        private byte cd; // Unknown "Color D"? Alpha
 
         public ColorVector() {
-            setRed(readChar());
-            setGreen(readChar());
-            setBlue(readChar());
-            setCd(readChar());
+            setRed(readByte());
+            setGreen(readByte());
+            setBlue(readByte());
+            setCd(readByte());
         }
 
         @Override
         public String toString() {
             return " " + toFloat(getRed()) + " " + toFloat(getGreen()) + " " + toFloat(getBlue());
         }
+
+        @Override
+        public boolean equals(Object obj) {
+            ColorVector cv = (ColorVector) obj;
+            return getRed() == cv.getRed() && getGreen() == cv.getGreen() && getBlue() == cv.getBlue();
+        }
     }
 
     @Getter @Setter
     private class MapUV {
-        private char u;
-        private char v;
+        private byte u;
+        private byte v;
 
         public MapUV() {
-            this.u = readChar(); //TODO: These might supposed to be multiplied by texture dimensions.
-            this.v = readChar();
+            this.u = readByte();
+            this.v = readByte();
         }
     }
 
@@ -500,19 +579,19 @@ public class MAPFile extends GameFile {
             setClutId(readShort()); // Read CLUT id.
             this.uvs[1] = new MapUV(); // Read next MapUV.
             setTextureId(readShort()); // Read texture id.
-            if (getTextureId() == 0) // Test code for ORG1. (Remove later)
-                setTextureId((short) 51);
-            if (getTextureId() == 1)
-                setTextureId((short) 41);
-            if (getTextureId() == 2)
-                setTextureId((short) 40);
-            if (getTextureId() == 3)
-                setTextureId((short) 50);
+            if (textureRemap.containsKey((int) getTextureId()))
+                setTextureId(textureRemap.get((int) getTextureId()).shortValue());
 
             // Read the rest of the UVs.
             for (int i = 0; i < uvs.length; i++)
                 if (uvs[i] == null)
                     uvs[i] = new MapUV();
+
+            if (count == 4) {
+                MapUV temp = uvs[2];
+                uvs[2] = uvs[3];
+                uvs[3] = temp;
+            }
 
             if (count % 2 != 0)
                 readShort(); // Padding

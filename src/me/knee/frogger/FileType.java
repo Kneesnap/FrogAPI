@@ -19,8 +19,8 @@ public enum FileType {
 	MAP(MAPFile.class, "Frogger Level", 33),
 	VLO(VLOArchive.class, "Packed Textures", 17),
 	VB("Sound Data", 1),
-	XAR(FOMFile.class, "Frogger MOF Model", 2),
-	XMR(FOMFile.class, "Frogger MOF Model (?)", 2),
+	XAR(MOFFile.class, "Frogger MOF Model", 2),
+	XMR(MOFFile.class, "Frogger MOF Model (?)", 2),
 	DAT(DemoFile.class, "Recorded Demo", 1),
 	PAL("Color Palette", 1),
 

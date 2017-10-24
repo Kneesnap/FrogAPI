@@ -1,6 +1,7 @@
 package me.knee.frogger.cheats;
 
 import com.sprogcoder.memory.exception.MemoryException;
+import org.jnativehook.keyboard.NativeKeyEvent;
 
 /**
  * Brighten up caves.
@@ -9,7 +10,7 @@ import com.sprogcoder.memory.exception.MemoryException;
 public class CaveLighting extends Cheat {
 
     public CaveLighting() {
-        super("Cave Brightness");
+        super("Cave Brightness", NativeKeyEvent.VC_C);
     }
 
     @Override

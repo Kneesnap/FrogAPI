@@ -138,7 +138,7 @@ public class ByteUtils {
 	public static String toByteString(byte[] data) {
 		String values = "";
 		for (byte b : data)
-			values += toString(b);
+			values += " " + toString(b);
 		if (values.length() > 0)
 			values = values.substring(1);
 		return values;
@@ -146,6 +146,6 @@ public class ByteUtils {
 
 	public static String toString(byte data) {
 		String val = String.format("%x", data);
-		return (val.length() == 1 ? "0" : "") + val;
+		return (val.length() == 1 ? "0" : "") + val.toUpperCase();
 	}
 }
