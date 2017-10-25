@@ -261,6 +261,7 @@ public class MAPFile extends GameFile {
         int animCount = readInt();
         int animOffset = readInt(); // The location in this file animation data is located at.
         //TODO: Is this ever used? It may be used in the cave levels to animate textures?
+        // It may be for changing textures.
 
         exportOBJ();
     }

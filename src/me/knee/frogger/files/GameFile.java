@@ -140,4 +140,8 @@ public abstract class GameFile {
 	protected void jump(int offset) {
 		ByteUtils.jumpTo(fis, offset);
 	}
+
+	public int getAddress() {
+		return ByteUtils.getCounter(fis);
+	}
 }

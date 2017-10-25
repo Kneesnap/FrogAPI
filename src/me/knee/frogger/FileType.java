@@ -24,7 +24,7 @@ public enum FileType {
 	DAT(DemoFile.class, "Recorded Demo", 1),
 	PAL("Color Palette", 1),
 
-	GRV(PSXGRPArchive.class, "PSX Packed Textures", 17, "2gr"),
+	GRV(VRGArchive.class, "PSX Packed Textures", 17, "2gr"),
 	
 	//Special cases
 	VH("Sound Header", 1),
