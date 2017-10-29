@@ -24,6 +24,7 @@ import static org.jnativehook.keyboard.NativeKeyEvent.*;
  *
  * Created by Kneesnap on 8/18/2017.
  */
+@Getter
 public class Freecam extends Cheat {
     private static Map<Offset, Integer> map = new HashMap<>();
 
@@ -62,8 +63,6 @@ public class Freecam extends Cheat {
             int val = o.keyMove(rotation);
             zero(o.getOffset(), 4);
             setInt(o.getOffset(), val);
-            if (readInt(o.getOffset()) != val)
-                System.out.println("Error, " + Integer.toHexString(readInt(o.getOffset())) + " != " + Integer.toHexString(val));
         }
     }
 
@@ -72,10 +71,8 @@ public class Freecam extends Cheat {
         CAMERA_X(0x497164, VC_A, VC_D, 2),
         CAMERA_Y(0x497168, VC_SPACE, VC_SHIFT),
         CAMERA_Z(0x49716C, VC_S, VC_W, 0),
-        CAMERA_XOFF(0x49713C, VC_1, VC_2), // Controls X of camera, focused on the target.
-        CAMERA_ZOFF(0x497140, VC_3, VC_4), // Controls Z of camera, focused on the target.
-        TARGET_XOFF(0x497144, VC_5, VC_6), // Controls X of target.
-        TARGET_ZOFF(0x497148, VC_7, VC_8);  // Controls Z of target.
+        TARGET_X(0x497144, VC_J, VC_L, 4),
+        TARGET_Z(0x497148, VC_K, VC_I, 3);
 
         private final int offset;
         private final int decrKey;
@@ -95,7 +92,8 @@ public class Freecam extends Cheat {
             int dKey = o.getDecrKey();
             int iKey = o.getIncrKey();
 
-            if ((getAlternate() != -1 && rotation == 2) || (rotation == 3 && this == CAMERA_X) || (rotation == 1 && this == CAMERA_Z)) {// Flip controls.
+            if ((getAlternate() != -1 && rotation == 2) || (rotation == 3 && this == CAMERA_X) || (rotation == 1 && this == CAMERA_Z)
+                    || (rotation == 1 && this == TARGET_Z) || (rotation == 3 && this == TARGET_X)) {// Flip controls.
                 int temp = dKey;
                 dKey = iKey;
                 iKey = temp;
@@ -105,14 +103,13 @@ public class Freecam extends Cheat {
             if (isGamePaused())
                 return offset;
 
-            int valueChange = ordinal() >= TARGET_XOFF.ordinal() ? 50 : 25;
-            if (Main.isKeyPressed(dKey))
-                offset -= valueChange;
-            if (Main.isKeyPressed(iKey))
-                offset += valueChange;
-            map.put(this, offset);
+            int valueChange = ordinal() >= 3 ? 50 : 25;
+            int newValue = offset + (Main.isKeyPressed(iKey) ? valueChange : 0) - (Main.isKeyPressed(dKey) ? valueChange : 0);
+            if (Math.abs(newValue) < valueChange && Math.abs(offset) >= valueChange && o == TARGET_Z) // Stop camera before it would break bounds and enter a loop where its controls make the screen stuck.
+                return offset;
 
-            return offset;
+            map.put(this, newValue);
+            return newValue;
         }
     }
 }

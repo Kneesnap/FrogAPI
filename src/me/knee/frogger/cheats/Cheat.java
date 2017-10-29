@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import me.knee.frogger.ByteUtils;
+import me.knee.frogger.Main;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -215,5 +216,9 @@ public abstract class Cheat {
     public Cheat setKey(int keyCode) {
         this.key = keyCode;
         return this;
+    }
+
+    protected boolean isKeyPressed(int key) {
+        return Main.isKeyPressed(key);
     }
 }

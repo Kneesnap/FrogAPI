@@ -1,6 +1,7 @@
 package me.knee.frogger.cheats;
 
 import com.sprogcoder.memory.JTrainer;
+import com.sprogcoder.memory.exception.MemoryException;
 import com.sprogcoder.memory.exception.WindowNotFoundException;
 import lombok.Getter;
 import lombok.SneakyThrows;
@@ -26,7 +27,6 @@ public class CheatEngine {
      * Register all cheats.
      */
     private static void registerCheats() {
-        cheats.add(new LockCheat("Lives", 0x498790).setKey(NativeKeyEvent.VC_L));
         cheats.add(new LockCheat("Time", 0x475938, 1).setKey(NativeKeyEvent.VC_Z));
         cheats.add(new ToggleCheat("Invincibility", 0x475934, NativeKeyEvent.VC_X));
         cheats.add(new Freecam());
@@ -73,7 +73,11 @@ public class CheatEngine {
                 c.onTick();
             } catch (Exception e) {
                 // Program was killed.
-                System.out.println("Detached from frogger.exe (Likely it was shutdown.)");
+                if (e instanceof MemoryException) {
+                    System.out.println("Detached from frogger.exe (Likely it was shutdown.)");
+                } else {
+                    e.printStackTrace();
+                }
                 trainer = null; // isAttached() should be false now.
             }
         });

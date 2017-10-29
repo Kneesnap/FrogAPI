@@ -11,6 +11,7 @@ import java.io.OutputStream;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import me.knee.frogger.ByteUtils;
+import me.knee.frogger.Main;
 
 /**
  * GameFile - Represents any game file.
