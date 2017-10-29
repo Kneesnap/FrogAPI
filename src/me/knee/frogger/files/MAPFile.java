@@ -32,6 +32,7 @@ public class MAPFile extends GameFile {
     private List<Light> lights = new ArrayList<>();
     private List<Vertex> vertexes = new ArrayList<>();
     private Map<PrimType, List<Poly>> polygonData = new HashMap<>();
+    private VLOArchive vlo;
 
     private Map<Integer, Integer> textureRemap = new HashMap<>();
 
@@ -80,9 +81,11 @@ public class MAPFile extends GameFile {
             vloFile = FilePicker.pickFileSync("Please select the corresponding VLO file.", FileType.VLO);
 
         // Extract textures to right place.
-        VLOArchive vlo = new VLOArchive(vloFile);
+        this.vlo = new VLOArchive(vloFile);
         vlo.setOutput(getDestination("MAP_OBJ"));
+        vlo.setMapExtract(true);
         vlo.load();
+
     }
 
 
@@ -340,7 +343,8 @@ public class MAPFile extends GameFile {
         for (Integer i : textureIds) {
             mtl.write("newmtl tex" + i + "\n");
             mtl.write("Kd 1 1 1\n");
-            mtl.write("map_Kd " + i + ".bmp\n\n");
+            mtl.write("d " + ((vlo.getImages().get(i).getFlags() & 1) == 1 ? 0.75 : 1) + "\n");
+            mtl.write("map_Kd " + i + ".png\n\n");
         }
 
         for (int i = 0; i < fColors.size(); i++) {
@@ -515,7 +519,7 @@ public class MAPFile extends GameFile {
         }
     }
 
-    @Getter @Setter
+    @Getter @Setter @AllArgsConstructor
     private class MapUV {
         private byte u;
         private byte v;
@@ -523,6 +527,10 @@ public class MAPFile extends GameFile {
         public MapUV() {
             this.u = readByte();
             this.v = readByte();
+        }
+
+        public MapUV reverse() {
+            return new MapUV(getV(), getU());
         }
     }
 
@@ -565,7 +573,7 @@ public class MAPFile extends GameFile {
 
     @Getter @Setter
     public class PolyT extends Poly {
-        private short flags;
+        private short flags; // 1 = Semi transparent. 2 Environment bitmap 4 MAX_OT (Add poly at back of OT Dunno.) 8 = Has map uv animation 16 = cel list animation
         private MapUV[] uvs;
         private short clutId;
         private short textureId;
@@ -601,6 +609,27 @@ public class MAPFile extends GameFile {
             this.vectors = new ColorVector[rgbCount];
             for (int i = 0; i < rgbCount; i++)
                 this.vectors[i] = new ColorVector();
+
+            //if (count == 4)
+                //flipUVs();
+            //dumpDebug();
+        }
+
+        public void dumpDebug() {
+            System.out.println("Texture " + getTextureId() + " Flags = " + getFlags());
+            System.out.println("UVs:");
+            for (MapUV uv : getUvs())
+                System.out.println(" - [" + Integer.toHexString(uv.getU()) + ", " + Integer.toHexString(uv.getV()) + "]");
+        }
+
+        public void flipUVs() { // Some textures need this for some reason. TODO: Figure out that pattern
+            int count = getUvs().length;
+            MapUV[] newValues = new MapUV[count];
+            newValues[0] = getUvs()[2];
+            newValues[1] = getUvs()[3];
+            newValues[2] = getUvs()[0];
+            newValues[3] = getUvs()[1];
+            setUvs(newValues);
         }
     }
 

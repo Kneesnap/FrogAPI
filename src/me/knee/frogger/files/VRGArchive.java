@@ -49,7 +49,7 @@ public class VRGArchive extends GameFile {
 			int offset = ByteUtils.readInt(fis);
 			
 			offsets[i] = offset;
-			images.add(new ImageData(fis, (int) width, (int) height));
+			images.add(new ImageData(fis, (int) width, (int) height, (byte) 0, (byte) 0, 0));
 			
 			System.out.println("Width = " + width);
 			System.out.println("Height = " + height);

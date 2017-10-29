@@ -23,15 +23,10 @@ public enum FileType {
 	XMR(MOFFile.class, "Frogger MOF Model (?)", 2),
 	DAT(DemoFile.class, "Recorded Demo", 1),
 	PAL("Color Palette", 1),
-
 	GRV(VRGArchive.class, "PSX Packed Textures", 17, "2gr"),
 	
 	//Special cases
 	VH("Sound Header", 1),
-	
-	// Non Custom File formats
-	BMP(ImageData.class, "Extracted Texture"),
-	WAV("Extracted Audio"),
 	
 	// "Root Files"
 	PP(PPFile.class, "PowerPak Compressed"),

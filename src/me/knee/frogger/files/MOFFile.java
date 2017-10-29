@@ -3,6 +3,7 @@ package me.knee.frogger.files;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +39,7 @@ public class MOFFile extends GameFile {
 
 		MRPart part = new MRPart();
 		short primCount = part.getPrimitives();
+		System.out.println("Prims = " + primCount);
 
         // Read all prim blocks.
         jump(part.getPrimitivesPtr());
@@ -51,6 +53,8 @@ public class MOFFile extends GameFile {
 			    getPrims().add(type.loadPrim(this));
 			primCount -= count;
 		}
+
+		exportObj();
 	}
 
 	private float toFloat(byte b) { // Only works on unsigned bytes.
@@ -69,6 +73,17 @@ public class MOFFile extends GameFile {
 		for (int i = 0; i < size; i++)
 			arr[i] = readShort();
 		return arr;
+	}
+
+	@SneakyThrows
+	private void exportObj() {
+		System.out.println("Exporting .obj...");
+		@Cleanup PrintWriter obj = new PrintWriter(getDestination("MOFS_OBJ") + "extracted.obj");
+		obj.write("#FrogAPI MOF Export\n");
+		for (Prim prim : getPrims())
+			obj.write(prim.getVertices() + "\n");
+
+		System.out.println("Export complete.");
 	}
 
 	@SuppressWarnings("unused")
@@ -192,7 +207,7 @@ public class MOFFile extends GameFile {
 				for (int i = 0; i < uvCount; i++) {
 					uvs[i] = new UV();
 					if (i != temp.length - 1 || i == uvCount - 1) // The last element to the temp array is after the final uv
-						temp[i] = readShort();
+						temp[Math.min(i, temp.length - 1)] = readShort();
 				}
 
 				if (getType() == PrimType.FT4) {  // For some reason this one is ordered differently.
@@ -210,6 +225,13 @@ public class MOFFile extends GameFile {
 			if (padding)
 				readShort(); // Padding
 			setColor(new ColorVector()); // Read color
+		}
+
+		public String getVertices() {
+			String ret = "v";
+			for (short s : vertices)
+				ret += " " + String.valueOf(toFloat(s)).split("E")[0];
+			return ret;
 		}
 	}
 }

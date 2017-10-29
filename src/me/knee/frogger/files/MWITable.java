@@ -110,7 +110,7 @@ public class MWITable extends GameFile {
 
 	public String getFileName(String currentTheme, int id) {
 		return getThemes().containsKey(currentTheme) && getThemes().get(currentTheme).size() > id ?
-				getThemes().get(currentTheme).get(id) : id + ".DMY";
+				getThemes().get(currentTheme).get(id) : id + ".XMR";
 	}
 
 	/**

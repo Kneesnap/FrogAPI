@@ -28,6 +28,7 @@ public class CheatEngine {
     private static void registerCheats() {
         cheats.add(new LockCheat("Lives", 0x498790).setKey(NativeKeyEvent.VC_L));
         cheats.add(new LockCheat("Time", 0x475938, 1).setKey(NativeKeyEvent.VC_Z));
+        cheats.add(new ToggleCheat("Invincibility", 0x475934, NativeKeyEvent.VC_X));
         cheats.add(new Freecam());
         cheats.add(new CaveLighting());
     }
@@ -72,10 +73,8 @@ public class CheatEngine {
                 c.onTick();
             } catch (Exception e) {
                 // Program was killed.
+                System.out.println("Detached from frogger.exe (Likely it was shutdown.)");
                 trainer = null; // isAttached() should be false now.
-                e.printStackTrace();
-                Thread.currentThread().interrupt();
-                System.exit(0);
             }
         });
     }
