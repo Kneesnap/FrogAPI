@@ -1,4 +1,4 @@
-#Texture remap list for ORG2.
+#Retro Level 2
 51 
 41
 40 

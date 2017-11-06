@@ -1,4 +1,4 @@
-#Texture remap list for ORG1.
+#Texture remap list for ORG1, Retro Level 1.
 51 # Image = 51.bmp, Internal ID = 0
 41 # Image = 41.bmp, Internal ID = 1
 40 # etc. Each line increments the internal id while the number on the line is the texture id it should be remapped to.
@@ -10,8 +10,8 @@
 26
 20
 25
-11
+9
 39
 10
-9
+11
 0
