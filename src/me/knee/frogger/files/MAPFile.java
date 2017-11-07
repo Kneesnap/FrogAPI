@@ -324,6 +324,14 @@ public class MAPFile extends GameFile {
                 int id = fColors.indexOf(color);
                 vertexColors.putIfAbsent(id, new ArrayList<>());
                 vertexColors.get(id).add(poly);
+
+                if (poly instanceof PolyG) {
+                    PolyG g = (PolyG) poly;
+                    System.out.print(polygons.indexOf(poly) + ": ");
+                    for (ColorVector cv : g.getColors())
+                        System.out.print("[" + cv.getRed() + ", " + cv.getGreen() + ", " + cv.getBlue() + "], ");
+                    System.out.println("");
+                }
             }
         }
 
@@ -350,6 +358,8 @@ public class MAPFile extends GameFile {
         for (int i = 0; i < fColors.size(); i++) {
             ColorVector cv = fColors.get(i);
             mtl.write("newmtl color" + i + "\n");
+            if (i == 0) // Set textures beyond here as completely solid.
+                mtl.write("d 1\n");
             mtl.write(String.format("Kd %s %s %s\n\n", toFloat(cv.getRed()), toFloat(cv.getGreen()), toFloat(cv.getBlue())));
         }
     }
@@ -357,7 +367,7 @@ public class MAPFile extends GameFile {
     private float toFloat(byte b) { // Only works on unsigned bytes.
         float num = (float) b;
         if (num < 0) // convert byte to unsigned byte.
-            num += 0xFF;
+            num += 256;
         return num / 0xFF;
     }
 

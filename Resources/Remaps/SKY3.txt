@@ -1,0 +1,5 @@
+#SKY3 - Time Flies
+93 #Unused Background -> Checkpoint
+107 #Start Pad -> Cloud
+1 #Eyes -> Start Pad
+108 #Particle -> White Cloud

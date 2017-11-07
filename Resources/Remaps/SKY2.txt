@@ -1,0 +1,11 @@
+#SKY2 - Airshow Antics
+
+#Ground Textures. These aren't completely correct as they do not account for animations.
+85
+85
+85
+85
+85
+85
+84
+83
