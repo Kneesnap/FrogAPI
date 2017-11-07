@@ -297,6 +297,7 @@ public class MAPFile extends GameFile {
         // Add textures.
         List<ColorVector> fColors = new ArrayList<>();
         Map<Integer, List<Poly>> vertexColors = new HashMap<>();
+        Map<Short, List<ColorVector>> vColors = new HashMap<>(); // For debug output purposes
 
         Set<Integer> textureIds = new HashSet<>();
         int texId = -1;
@@ -325,14 +326,24 @@ public class MAPFile extends GameFile {
                 vertexColors.putIfAbsent(id, new ArrayList<>());
                 vertexColors.get(id).add(poly);
 
+                // Add to color debug output.
                 if (poly instanceof PolyG) {
                     PolyG g = (PolyG) poly;
-                    System.out.print(polygons.indexOf(poly) + ": ");
-                    for (ColorVector cv : g.getColors())
-                        System.out.print("[" + cv.getRed() + ", " + cv.getGreen() + ", " + cv.getBlue() + "], ");
-                    System.out.println("");
+                    for (int i = 0; i < g.getVertices().length; i++) {
+                        short vert = g.getVertices()[i];
+                        vColors.putIfAbsent(vert, new ArrayList<>());
+                        vColors.get(vert).add(g.getColors()[i]);
+                    }
                 }
             }
+        }
+
+        // Output vertex color debug logs.
+        for (short vert : vColors.keySet()) {
+            System.out.print(vert + ": ");
+            for (ColorVector cv : vColors.get(vert))
+                System.out.print("[" + cv.getRed() + ", " + cv.getGreen() + ", " + cv.getBlue() + ", " + cv.getCd() + "] ");
+            System.out.println("");
         }
 
         out.write("#Non-Textured Polys\n");
@@ -537,10 +548,6 @@ public class MAPFile extends GameFile {
         public MapUV() {
             this.u = readByte();
             this.v = readByte();
-        }
-
-        public MapUV reverse() {
-            return new MapUV(getV(), getU());
         }
     }
 
