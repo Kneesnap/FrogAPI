@@ -1,3 +1,6 @@
+#DEV1 - Island.MAP. Developer Level by Tim Closs.
+VLO=SUB_VRAM
+
 0=80
 1=25
 2=26
@@ -10,7 +13,7 @@
 9=29
 
 #No clue if these are right. Probably not. Should look in binary really :(
-10=30
+10=72
 11=31
 12=33
 13=34

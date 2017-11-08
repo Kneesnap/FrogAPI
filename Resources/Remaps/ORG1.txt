@@ -3,13 +3,13 @@
 41 # Image = 41.bmp, Internal ID = 1
 40 # etc. Each line increments the internal id while the number on the line is the texture id it should be remapped to.
 50
-26
+!26
 25
 24
 22
 21
 20
-23
+!23
 9
 39
 10

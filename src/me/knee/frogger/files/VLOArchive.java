@@ -1,26 +1,20 @@
 package me.knee.frogger.files;
 
-import java.awt.*;
-import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import lombok.Getter;
 import lombok.Setter;
 import me.knee.frogger.ByteUtils;
-import me.knee.frogger.FilePicker;
-import me.knee.frogger.FileType;
-
-import javax.imageio.ImageIO;
 
 /**
  * VLOArchive - Represents .VLO image archives.
  * 
- * These archives contains image data including 
- * TODO: Option to export with or without padding
+ * These archives contains image data including
  * Created May 11th, 2017.
  * @author Kneesnap
  */
@@ -30,6 +24,7 @@ public class VLOArchive extends GameFile {
 	@Setter private boolean flip = true;
 	@Setter private String output;
 	@Setter private boolean isMapExtract;
+	@Setter private Set<Integer> dontFlip;
 
 	public VLOArchive(File f) {
 		super(f);
@@ -80,7 +75,7 @@ public class VLOArchive extends GameFile {
 		for (int i = 0; i < fileCount; i++) { // Create image data the file.
 			ImageData id = images.get(i);
 			id.setReadSize(offsets[i + 1] - offsets[i]);
-			id.setFlip(this.flip);
+			id.setFlip(this.flip && (dontFlip == null || !dontFlip.contains(i))); // Flip the image if flipping is enabled
 			if (isMapExtract)
 				id.setTrim(true);
 			try {

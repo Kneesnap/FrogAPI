@@ -110,27 +110,27 @@ public class ImageData extends GameFile {
 	@SneakyThrows
 	private void write(File f) {
 		byte[] data = getBMP();
-		if (flip) {
-			BufferedImage original = ImageIO.read(new ByteArrayInputStream(data));
+		BufferedImage original = ImageIO.read(new ByteArrayInputStream(data));
 
-			if (this.trim) { // Trim out unused parts.
-				int xTrim = getWidth() - igWidth;
-				int yTrim = getHeight() - igHeight;
-				BufferedImage trimImg = new BufferedImage(igWidth, igHeight, original.getType());
-				Graphics2D trim = trimImg.createGraphics();
-				trim.drawImage(original, -xTrim / 2, -yTrim / 2, getWidth(), getHeight(), null);
-				original = trimImg;
-			}
-
-			Image write = (flags & (1<<5)) == (1<<5) ? Toolkit.getDefaultToolkit().createImage(new FilteredImageSource(original.getSource(), new TransparencyFilter())) : original; // Make it transparent if marked.
-			BufferedImage newImage = new BufferedImage(original.getWidth(), original.getHeight(), BufferedImage.TYPE_INT_ARGB);
-			Graphics2D gg = newImage.createGraphics();
-			gg.drawImage(write, 0, original.getHeight(), original.getWidth(), -original.getHeight(), null);
-			ImageIO.write(newImage, "PNG", f);
-			gg.dispose();
-		} else {
-			Files.write(data, f);
+		if (this.trim) { // Trim out unused parts.
+			int xTrim = getWidth() - igWidth;
+			int yTrim = getHeight() - igHeight;
+			BufferedImage trimImg = new BufferedImage(igWidth, igHeight, original.getType());
+			Graphics2D trim = trimImg.createGraphics();
+			trim.drawImage(original, -xTrim / 2, -yTrim / 2, getWidth(), getHeight(), null);
+			original = trimImg;
 		}
+
+		Image write = (flags & (1<<5)) == (1<<5) ? Toolkit.getDefaultToolkit().createImage(new FilteredImageSource(original.getSource(), new TransparencyFilter())) : original; // Make it transparent if marked.
+		BufferedImage newImage = new BufferedImage(original.getWidth(), original.getHeight(), BufferedImage.TYPE_INT_ARGB);
+		Graphics2D gg = newImage.createGraphics();
+		if (this.flip) {
+			gg.drawImage(write, 0, original.getHeight(), original.getWidth(), -original.getHeight(), null); // Draw the image flipped.
+		} else {
+			gg.drawImage(write, 0, 0, original.getWidth(), original.getHeight(), null); // Draw the image not flipped.
+		}
+		ImageIO.write(newImage, "PNG", f);
+		gg.dispose();
 	}
 
 	@SneakyThrows
