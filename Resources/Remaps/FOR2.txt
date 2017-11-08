@@ -7,7 +7,7 @@
 17=10 #Leaves -> Ground
 19=53 #Leaves -> Ground
 21=38 # Leaves -> Tree Trunk
-22=59 #Unknown -> Water
+!22=59 #Unknown -> Water
 23=42 # Orange -> Stump
 25=8 #Beehive -> Planks
 26=35 #Canopy Capers -> Wood
