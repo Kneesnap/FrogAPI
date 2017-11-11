@@ -23,7 +23,6 @@
         <SOURCES />
       </library>
     </orderEntry>
-    <orderEntry type="library" name="guava-13.0.1" level="project" />
     <orderEntry type="library" name="Lombok" level="project" />
     <orderEntry type="library" name="Resources" level="project" />
   </component>
