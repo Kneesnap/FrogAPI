@@ -1,0 +1,24 @@
+#Honey Bee Hollow
+!0=14 #Water -> Ground
+!3=56 #Ground
+6=67 #Blank ground
+!12=4 #Ground (May be incorrect)
+!14=59 #Riverbed
+15=58 #River
+16=8 #Bridge Texture
+17=49 #River
+18=46 #River
+!19=47 #River
+20=46 #River
+21=45 #Checkpoints
+!24=21 #Orange -> Leaf border
+22=57 #River
+23=44 #River
+25=43 #Bee Hive -> Stump Side
+!26=20 #Canopy Cavers -> Leaf border
+27=0 #Rope -> Water
+28=42 #Ground -> Stump top
+!29=7 #Bridge Side
+30=41 #Starting Pad
+31=40 #Tree Tongues
+32=39 #Red Mushroom
